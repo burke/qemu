@@ -387,31 +387,30 @@ int net_init_vmnet_macos(const Netdev *netdev, const char *name,
         /* Ensure we read exactly one packet */
         assert(pktcnt == 1);
 
-        dispatch_async(dispatch_get_main_queue(), ^{
-            qemu_mutex_lock_iothread();
+        qemu_mutex_lock_iothread();
 
-            /*
-             * Deliver the packet to the guest
-             * If the delivery succeeded synchronously, this returns the length
-             * of the sent packet.
-             */
-            if (qemu_send_packet_async(nc, iov->iov_base,
-                                       v->vm_pkt_size,
-                                       vmnet_send_completed) == 0) {
-                vmnet_client_state->qemu_ready_to_receive = false;
-            }
+        /*
+         * Deliver the packet to the guest
+         * If the delivery succeeded synchronously, this returns the length
+         * of the sent packet.
+         */
+        if (qemu_send_packet_async(nc, iov->iov_base,
+                                   v->vm_pkt_size,
+                                   vmnet_send_completed) == 0)
+        {
+            vmnet_client_state->qemu_ready_to_receive = false;
+        }
 
-            /*
-             * It's safe to free the packet buffers.
-             * Even if delivery needs to wait, qemu_net_queue_append copies
-             * the packet buffer.
-             */
-            g_free(v);
-            g_free(iov);
-            g_free(packet_buf);
+        /*
+         * It's safe to free the packet buffers.
+         * Even if delivery needs to wait, qemu_net_queue_append copies
+         * the packet buffer.
+         */
+        g_free(v);
+        g_free(iov);
+        g_free(packet_buf);
 
-            qemu_mutex_unlock_iothread();
-        });
+        qemu_mutex_unlock_iothread();
     });
 
     /* Did we manage to set an event callback? */
